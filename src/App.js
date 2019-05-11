@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import { Link, Route } from 'react-router-dom';
 import './App.css';
+import Cars from './cars';
+import Car from './car';
+import Option from './option';
 
 class App extends Component {
   constructor() {
@@ -9,7 +12,6 @@ class App extends Component {
       items: [],
       keywordSearch: '',
       colourFilters: '',
-      colourFilters2: ['Black', 'Blue', 'Grey'],
       bodyFilters: '',
       fuelFilters: ''
     }
@@ -49,35 +51,28 @@ class App extends Component {
     this.setState({fuelFilters: ''});
   }
 
-  addColour(colour) {
-
-    // this.setState({colourFilters2: })
+  clearAllFilters() {
+    this.setState({
+      colourFilters: '',
+      bodyFilters: '',
+      fuelFilters: ''
+    });
   }
 
   render() {
-    let items = [];
-    let colours = [];
-    let bodyTypes = [];
-    let fuelTypes = [];
+    let items = [],
+        colours = [],
+        bodyTypes = [],
+        fuelTypes = [];
 
-    let colourCount = {};
-    let bodyTypesCount = {};
-    let fuelTypesCount = {};
+    let colourTally = {},
+        bodyTypesTally = {},
+        fuelTypesTally = {};
 
     if (this.state.keywordSearch) {
       items = this.state.items.filter(
         item => item.vehicleCapDetails.capMakeName.includes(this.state.keywordSearch) || item.vehicleCapDetails.capModelName.includes(this.state.keywordSearch)
       );
-    }
-
-    // Experimenting with using array of colour filters
-    if (this.state.colourFilters) {
-      let newItems = this.state.colourFilters2.map(colour => {
-        return items.filter(item => item.displayColour === colour);
-      });
-      // Flatten array
-      newItems = newItems.reduce((acc, val) => acc.concat(val), []);
-      console.log(newItems);
     }
 
     if (this.state.colourFilters) {
@@ -98,8 +93,8 @@ class App extends Component {
       );
     }
 
-    // Filter counts reducer
-    const countReducer = (tally, item) => {
+    // Filter tallyss reducer
+    const tallyReducer = (tally, item) => {
       if (!tally[item]) {
         tally[item] = 1;
       } else {
@@ -110,19 +105,16 @@ class App extends Component {
 
     // Create filter lists
     if (this.state.items.length) {
-      colours = this.state.items.map(item => item.displayColour);
-      colours = [...new Set(colours)].sort();
-      bodyTypes = this.state.items.map(item => item.vehicleCapDetails.bodyStyle);
-      bodyTypes = [...new Set(bodyTypes)].sort();
-      fuelTypes = this.state.items.map(item => item.fuel);
-      fuelTypes = [...new Set(fuelTypes)].sort();
+      colours = [...new Set( this.state.items.map(item => item.displayColour) )].sort();
+      bodyTypes = [...new Set( this.state.items.map(item => item.vehicleCapDetails.bodyStyle) )].sort();
+      fuelTypes = [...new Set( this.state.items.map(item => item.fuel) )].sort();
     }
 
-    // Create filter counts
+    // Create filter tallys
     if (items.length) {
-      colourCount = items.map(item => item.displayColour).reduce(countReducer, {});
-      bodyTypesCount = items.map(item => item.vehicleCapDetails.bodyStyle).reduce(countReducer, {});
-      fuelTypesCount = items.map(item => item.fuel).reduce(countReducer, {});
+      colourTally = items.map(item => item.displayColour).reduce(tallyReducer, {});
+      bodyTypesTally = items.map(item => item.vehicleCapDetails.bodyStyle).reduce(tallyReducer, {});
+      fuelTypesTally = items.map(item => item.fuel).reduce(tallyReducer, {});
     }
 
     return (
@@ -139,22 +131,21 @@ class App extends Component {
               href="#" 
               onClick={e => { 
                 e.preventDefault();
-                // Clear filters in state
-                // Clear checked checkboxes
+                this.clearAllFilters();
               }}>
               Clear all
             </a>
             <fieldset disabled={items.length ? false : true}>
               <legend>Colour</legend>
-              {colours.map(colour => <Option key={colour} option={colour} filter={this.colourFilter.bind(this)} clearFilter={this.clearColourFilter.bind(this)} count={colourCount} />)}
+              {colours.map(colour => <Option key={colour} option={colour} filter={this.colourFilter.bind(this)} clearFilter={this.clearColourFilter.bind(this)} count={colourTally} />)}
             </fieldset>
             <fieldset disabled={items.length ? false : true}>
               <legend>Body Type</legend>
-              {bodyTypes.map(type => <Option key={type} option={type} filter={this.bodyFilter.bind(this)} clearFilter={this.clearBodyFilter.bind(this)} count={bodyTypesCount} />)}
+              {bodyTypes.map(type => <Option key={type} option={type} filter={this.bodyFilter.bind(this)} clearFilter={this.clearBodyFilter.bind(this)} count={bodyTypesTally} />)}
             </fieldset>
             <fieldset disabled={items.length ? false : true}>
               <legend>Fuel Type</legend>
-              {fuelTypes.map(type => <Option key={type} option={type} filter={this.fuelFilter.bind(this)} clearFilter={this.clearFuelFilter.bind(this)} count={fuelTypesCount} />)}
+              {fuelTypes.map(type => <Option key={type} option={type} filter={this.fuelFilter.bind(this)} clearFilter={this.clearFuelFilter.bind(this)} count={fuelTypesTally} />)}
             </fieldset>
           </form>
         </aside>
@@ -173,82 +164,6 @@ class App extends Component {
     );
   }
 }
-
-const Cars = ({ car }) => (
-  <Link to={{
-    pathname: `/vehicles/${car.vehicleCapDetails.capMakeName}/${car.vehicleCapDetails.capRangeName}/${car.id}`,
-    state: {
-      car: car
-    }
-  }}>
-    <li className="result-item">
-      <div className="result-item__img">
-        <img src={`https:${car.displayImage.medium}`} alt={car.vehicleCapDetails.capModelName} />
-        <div className="result-item__img-overlay">
-          <div className="result-item__img-overlay-text">View</div>
-        </div>
-      </div>
-      <div className="result-item__body">
-        <h4>{car.vehicleCapDetails.capMakeName} {car.vehicleCapDetails.capRangeName}</h4>
-        <h5>{car.vehicleCapDetails.capDerivativeName}, {car.year}</h5>
-        <p>{car.attentionGrabber}</p>
-        <h3><span>From</span> £{car.minimumMonthlyPayment} <span>monthly or</span> £{car.vehiclePrice.salePrice}</h3>
-        <p>+ £149 Admin Fee</p>
-        <ul className="result-item__info">
-          <li>{car.mileage} miles</li>
-          <li>{car.fuel}</li>
-          <li>{car.transmission}</li>
-          <li>{car.displayColour}</li>
-          <li>{car.storeName}</li>
-        </ul>
-      </div>
-    </li>
-  </Link>
-)
-
-const Car = props => {
-  const car = props.location.state.car;
-
-  return (
-    <div className="car-display">
-      <h1>{car.vehicleCapDetails.capMakeName} {car.vehicleCapDetails.capRangeName}</h1>
-      <ul className="car-display__info">
-        <li><span>{car.vehicleCapDetails.capDerivativeName}</span></li>
-        <li><span>{car.year}</span></li>
-        <li><span>{car.mileage} miles</span></li>
-        <li><span>{car.fuel}</span></li>
-      </ul>
-      <ul className="car-display__price">
-        <li><span>£{car.vehiclePrice.salePrice}</span></li>
-        <li>or from <span>£{car.minimumMonthlyPayment}</span> monthly</li>
-      </ul>
-      <img src={`https:${car.displayImage.medium}`} alt={car.vehicleCapDetails.capModelName} />
-      <h4 className="car-display__attention">{car.attentionGrabber}</h4>
-      <p className="car-display__description">{car.autotraderDescription}</p>
-      <h3>Top features</h3>
-    </div>
-  )
-}
-
-const Option = props => (
-  <label className={!props.count[props.option] ? "option-select disabled" : "option-select"} htmlFor={props.option}>{props.option} <span>({props.count[props.option] || '0'})</span>
-    <input 
-      type="checkbox" 
-      id={props.option} 
-      name={props.option} 
-      value={props.option}
-      disabled={props.count[props.option] ? false : true}
-      onChange={e => {
-        if (e.target.checked) {
-          // Add value to array
-          props.filter(e);
-        } else {
-          // Remove value from array
-          props.clearFilter();
-        }
-      }} />
-  </label>
-)
 
 
 export default App;
